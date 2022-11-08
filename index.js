@@ -1,7 +1,8 @@
 const express = require('express')
 const app = express()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cors = require('cors')
+const cors = require('cors');
+const { query } = require('express');
 const port = process.env.PORT || 5000
 require('dotenv').config()
 require('colors');
@@ -20,6 +21,7 @@ async function run() {
     try {
 
         const serviceCollection = client.db('AccountServices').collection('Service')
+        const serviceReview = client.db('AccountServices').collection('Review')
 
         // Service Server
 
@@ -41,6 +43,29 @@ async function run() {
             const id = req.params.id
             const filter = { _id: ObjectId(id) }
             const result = await serviceCollection.findOne(filter)
+            res.send(result)
+        })
+
+        // Review Services
+
+        app.post('/reviewService', async (req, res) => {
+            const user_review = req.body
+            const result = await serviceReview.insertOne(user_review)
+            res.send(result)
+        })
+
+        app.get('/reviewService', async (req, res) => {
+            const query = {}
+            const cursor = serviceReview.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        app.get('/reviewService/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { service_id: id }
+            const cursor = serviceReview.find(filter)
+            const result = await cursor.toArray()
             res.send(result)
         })
 
