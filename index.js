@@ -27,15 +27,21 @@ async function run() {
 
         app.get('/home-services', async (req, res) => {
             const query = {}
-            const cursor = serviceCollection.find(query)
+            const cursor = serviceCollection.find(query).sort({ _id: -1 })
             const result = await cursor.limit(3).toArray()
             res.send(result)
         })
 
         app.get('/services', async (req, res) => {
             const query = {}
-            const cursor = serviceCollection.find(query)
+            const cursor = serviceCollection.find(query).sort({ _id: -1 })
             const result = await cursor.toArray()
+            res.send(result)
+        })
+
+        app.post('/services', async (req, res) => {
+            const service = req.body
+            const result = await serviceCollection.insertOne(service)
             res.send(result)
         })
 
@@ -72,7 +78,7 @@ async function run() {
         app.get('/reviewService/:id', async (req, res) => {
             const id = req.params.id
             const filter = { service_id: id }
-            const cursor = serviceReview.find(filter)
+            const cursor = serviceReview.find(filter).sort({ time: -1 })
             const result = await cursor.toArray()
             res.send(result)
         })
