@@ -77,6 +77,31 @@ async function run() {
             res.send(result)
         })
 
+        app.get('/reviewService/update/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
+            const result = await serviceReview.findOne(filter)
+            res.send(result)
+        })
+
+        app.put('/reviewService/update/:id', async (req, res) => {
+            const id = req.params.id
+            const update_body = req.body.review
+
+            const filter = { _id: ObjectId(id) }
+            const option = { upsert: true }
+
+            const updateReview = {
+                $set: {
+                    message: update_body
+                }
+            }
+
+            const result = await serviceReview.updateOne(filter, updateReview, option)
+            res.send(result)
+
+        })
+
         app.delete('/reviewService/:id', async (req, res) => {
             const id = req.params.id
             const filter = { _id: ObjectId(id) }
