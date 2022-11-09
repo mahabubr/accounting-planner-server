@@ -2,8 +2,8 @@ const express = require('express')
 const app = express()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
-const { query } = require('express');
 const port = process.env.PORT || 5000
+var jwt = require('jsonwebtoken');
 require('dotenv').config()
 require('colors');
 
@@ -11,6 +11,27 @@ require('colors');
 app.use(cors())
 app.use(express.json())
 
+
+// Middle Were JWT
+
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.status(401).send({ message: 'unauthorized access' });
+    }
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: 'Forbidden access' });
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
+// MongoDB Connect URL
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.vlhy1ml.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -20,11 +41,14 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
 
+        // Services Documents
         const serviceCollection = client.db('AccountServices').collection('Service')
+        // Review Documents
         const serviceReview = client.db('AccountServices').collection('Review')
 
         // Service Server
 
+        // Get Home 3 Services
         app.get('/home-services', async (req, res) => {
             const query = {}
             const cursor = serviceCollection.find(query).sort({ _id: -1 })
@@ -32,6 +56,7 @@ async function run() {
             res.send(result)
         })
 
+        // Get Home All Services For Services Page
         app.get('/services', async (req, res) => {
             const query = {}
             const cursor = serviceCollection.find(query).sort({ _id: -1 })
@@ -60,10 +85,16 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/reviewService', async (req, res) => {
+        app.get('/reviewService', verifyJWT, async (req, res) => {
 
             let query = {}
+            // Check JOT Condition
+            const decoded = req.decoded;
 
+            if (decoded.email !== req.query.email) {
+                res.status(403).send({ message: 'unauthorized access' })
+            }
+            // Email Query For Fetch Data To My Review Section
             if (req.query.email) {
                 query = {
                     user_email: req.query.email
@@ -75,6 +106,7 @@ async function run() {
             res.send(result)
         })
 
+        // Get Review To Show ALl User Review
         app.get('/reviewService/:id', async (req, res) => {
             const id = req.params.id
             const filter = { service_id: id }
@@ -83,13 +115,14 @@ async function run() {
             res.send(result)
         })
 
+        // Get Single Review To Update User Review
         app.get('/reviewService/update/:id', async (req, res) => {
             const id = req.params.id
             const filter = { _id: ObjectId(id) }
             const result = await serviceReview.findOne(filter)
             res.send(result)
         })
-
+        // Update Service Review
         app.put('/reviewService/update/:id', async (req, res) => {
             const id = req.params.id
             const update_body = req.body.review
@@ -108,11 +141,21 @@ async function run() {
 
         })
 
+        // Delete Review From My Service
         app.delete('/reviewService/:id', async (req, res) => {
             const id = req.params.id
             const filter = { _id: ObjectId(id) }
             const result = await serviceReview.deleteOne(filter)
             res.send(result)
+        })
+
+
+        // JWT Token
+
+        app.post('/jwt', (req, res) => {
+            const user = req.body
+            const token = jwt.sign(user, process.env.JWT_ACCESS_TOKEN_SECRET, { expiresIn: '1d' })
+            res.send({ token })
         })
 
     }
